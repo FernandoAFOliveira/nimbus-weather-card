@@ -300,9 +300,14 @@ class NimbusWeatherCard extends HTMLElement {
     return { entity };
   }
   static getConfigElement() { return document.createElement('nimbus-weather-card-editor'); }
-  getCardSize() { return 3; }
+  _layoutRows() {
+    return this._config?.show_forecast === false ? 4 : 5;
+  }
+
+  getCardSize() { return this._layoutRows(); }
   getGridOptions() {
-    return { rows: 3, columns: 12, min_rows: 3, min_columns: 6 };
+    const rows = this._layoutRows();
+    return { rows, columns: 12, min_rows: rows, min_columns: 6 };
   }
 
   constructor() {
