@@ -402,9 +402,11 @@ function _sourceWithDisplayDefaults(source = {}, config = {}) {
 class NimbusWeatherCard extends HTMLElement {
   static getStubConfig(hass) {
     const entity = hass ? Object.keys(hass.states).find(e => e.startsWith('weather.')) || 'weather.home' : 'weather.home';
-    return { entity };
+    return { 
+      type: 'custom:nimbus-weather-card-time-zone',
+      entity };
   }
-  static getConfigElement() { return document.createElement('nimbus-weather-card-editor'); }
+  static getConfigElement() { return document.createElement('nimbus-weather-card-time-zone-editor'); }
   _layoutRows() {
     if (this._sourceSystemEnabled?.()) {
       const sources = this._normalizeSources?.() || [];
@@ -591,7 +593,7 @@ class NimbusWeatherCard extends HTMLElement {
     const path = window.location?.pathname || 'dashboard';
     const ids = sources.map(source => source.id).filter(Boolean).join('|');
     if (!ids) return null;
-    return `nimbus-weather-card:active-source:${path}:${ids}`;
+    return `nimbus-weather-card-time-zone:active-source:${path}:${ids}`;
   }
 
   _storedSourceId(sources = this._normalizeSources()) {
@@ -4266,7 +4268,7 @@ _clearDroplets() {
 
   _tempRangeCacheKey(entityId = '', date = new Date()) {
     const entity = String(entityId || this._config?.entity || 'weather').replace(/[^a-z0-9_.-]+/gi, '_');
-    return `nimbus-weather-card:daily-range:${entity}:${this._localDateKey(date)}`;
+    return `nimbus-weather-card-time-zone:daily-range:${entity}:${this._localDateKey(date)}`;
   }
 
   _readTempRangeCache(entityId = '', date = new Date()) {
@@ -5447,13 +5449,13 @@ if (!customElements.get('nimbus-lens-flare-overlay')) {
 }
 
 window.customCards = window.customCards || [];
-if (!window.customCards.some((card) => card.type === 'nimbus-weather-card')) {
+if (!window.customCards.some((card) => card.type === 'nimbus-weather-card-time-zone')) {
   window.customCards.push({
     type: 'nimbus-weather-card-time-zone',
     name: 'Nimbus Weather Card Time Zone',
     description: 'Apple Weather-inspired weather card with multi-source tabs, dynamic skies, moon phases, and smooth atmospheric effects.',
     preview: true,
-    documentationURL: 'https://github.com/maxfok/nimbus-weather-card',
+    documentationURL: 'https://github.com/FernandoAFOliveira/nimbus-weather-card-time-zone',
   });
 }
 
@@ -6217,7 +6219,7 @@ ${!sourceEditorEnabled ? `
       // Start from existing config to preserve unknown fields like grid_options
       const cfg = {
         ...this._config,
-        type: 'custom:nimbus-weather-card',
+        type: 'custom:nimbus-weather-card-time-zone',
         entity,
         forecast_type: getValue('forecast_type', this._config.forecast_type || 'daily'),
         max_items: Number.isFinite(maxItemsValue) ? maxItemsValue : (this._config.max_items || 5),
@@ -6390,4 +6392,4 @@ ${!sourceEditorEnabled ? `
   }
 }
 
-if (!customElements.get('nimbus-weather-card-editor')) customElements.define('nimbus-weather-card-editor', NimbusWeatherCardEditor);
+if (!customElements.get('nimbus-weather-card-time-zone-editor')) customElements.define('nimbus-weather-card-time-zone-editor', NimbusWeatherCardEditor);
