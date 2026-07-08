@@ -5265,7 +5265,7 @@ _tickClock() {
   }
 }
 
-if (!customElements.get('nimbus-weather-card')) customElements.define('nimbus-weather-card', NimbusWeatherCard);
+if (!customElements.get('nimbus-weather-card-time-zone')) customElements.define('nimbus-weather-card-time-zone', NimbusWeatherCard);
 
 // ── Lens Flare Overlay ─────────────────────────────────────────────────────────
 class LensFlareOverlay extends HTMLElement {
@@ -5449,8 +5449,8 @@ if (!customElements.get('nimbus-lens-flare-overlay')) {
 window.customCards = window.customCards || [];
 if (!window.customCards.some((card) => card.type === 'nimbus-weather-card')) {
   window.customCards.push({
-    type: 'nimbus-weather-card',
-    name: 'Nimbus Weather Card',
+    type: 'nimbus-weather-card-time-zone',
+    name: 'Nimbus Weather Card Time Zone',
     description: 'Apple Weather-inspired weather card with multi-source tabs, dynamic skies, moon phases, and smooth atmospheric effects.',
     preview: true,
     documentationURL: 'https://github.com/maxfok/nimbus-weather-card',
