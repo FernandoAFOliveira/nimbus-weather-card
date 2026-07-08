@@ -5017,25 +5017,28 @@ _clearDroplets() {
     }).join('');
   }
 
-_clockParts(use24h = this._config?.use_24h !== false) {
+  _clockParts(use24h = this._config?.use_24h !== false) {
     let now = new Date();
     let timeStringOverride = null;
+    let fallbackToWeather = true;
 
-    // 1. Hook into your custom Worldclock Entity field if provided[cite: 3]
+    // 1. Primary: Attempt to use the user-defined custom Worldclock Entity
     if (this._config?.local_time && this.hass && this.hass.states[this._config.local_time]) {
       const timeEntityState = this.hass.states[this._config.local_time];
-      if (timeEntityState && timeEntityState.state) {
-        // The Worldclock integration outputs time state or timestamp
+      if (timeEntityState && timeEntityState.state && timeEntityState.state !== 'unknown' && timeEntityState.state !== 'unavailable') {
         const parsedDate = new Date(timeEntityState.state);
         if (!isNaN(parsedDate.getTime())) {
           now = parsedDate;
-        } else {
-          // Fallback parsing if state is a pure string representation
+          fallbackToWeather = false; // Successfully used the user's entity
+        } else if (timeEntityState.state.includes(':')) {
           timeStringOverride = timeEntityState.state;
+          fallbackToWeather = false;
         }
       }
-    } else {
-      // 2. Fallback to Automatic Weather Timezone Hook if no Worldclock entity is selected[cite: 3]
+    }
+
+    // 2. Secondary Fallback: If no custom entity was found/configured, use the Weather Timezone logic
+    if (fallbackToWeather) {
       const sources = this._normalizeSources ? this._normalizeSources() : [];
       const preferredId = (this._storedSourceId && sources.length) ? this._storedSourceId(sources) : null;
       const activeSource = sources.find(source => source.id === (preferredId || this._activeSourceId || this._config?.active_source)) || sources[0];
@@ -5053,18 +5056,17 @@ _clockParts(use24h = this._config?.use_24h !== false) {
         }
       }
 
-      // 3. Apply Finer Tweaking / Manual Offset (in hours)[cite: 3]
+      // 3. Final Fallback Tweak: Apply manual offset if configured
       if (this._config?.timezone_offset) {
         const offsetMs = parseFloat(this._config.timezone_offset) * 60 * 60 * 1000;
         now = new Date(now.getTime() + offsetMs);
       }
     }
 
-    // Native card formatting logic[cite: 3]
+    // Native card formatting and rendering logic
     const locMap = {'en': 'en-US', 'es': 'es-ES', 'de': 'de-DE'};
     const loc = locMap[this._config?.language||'en'] || 'en-US';
     
-    // If the Worldclock entity returned a formatted string directly, parse it out safely[cite: 3]
     if (timeStringOverride && timeStringOverride.includes(':')) {
       return {
         date: now.toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' }),
@@ -5763,7 +5765,7 @@ class NimbusWeatherCardEditor extends HTMLElement {
     const weatherEntities = this._weatherEntities();
     const sensorEntities = this._sensorEntities();
     const sunEntities = this._sunEntities();
-    const timeEntities = Object.keys(this.hass.states).filter(e => e.startsWith('sensor.') || e.startsWith('time.')).sort();
+    const timeEntities = (this.hass && this.hass.states) ? Object.keys(this.hass.states).filter(e => e.startsWith('sensor.') || e.startsWith('time.')).sort() : [];
     const sourceEditorEnabled = Array.isArray(c.sources) && c.sources.length > 0;
     const extraSensorsDisabled = !sourceEditorEnabled && this._val('show_forecast', true);
     const extraSensorsHint = sourceEditorEnabled
