@@ -5017,24 +5017,17 @@ _clearDroplets() {
     }).join('');
   }
 
-  _clockParts(use24h = this._config?.use_24h !== false) {
-    const now = new Date();
-    const locMap = {'en':'en-US','es':'es-ES','de':'de-DE'};
-    const loc = locMap[this._config?.language||'en'] || 'en-US';
-    const h = now.getHours();
-    const m = String(now.getMinutes()).padStart(2,'0');
-    return {
-      date: now.toLocaleDateString(loc, { weekday:'short', day:'numeric', month:'short' }),
-      time: use24h ? `${String(h).padStart(2,'0')}:${m}` : `${h % 12 || 12}:${m}${h < 12 ? 'am' : 'pm'}`,
-    };
-  }
-
-_tickClock() {
+_clockParts(use24h = this._config?.use_24h !== false) {
     let now = new Date();
 
-    // 1. Automatic Timezone Hook from the active weather entity
-    const entity = this._config.active_source || (this._config.sources?.[0]?.entity) || '';
-    if (this._config.use_local_timezone !== false && entity) {
+    // 1. Correctly resolve the active weather entity using the card's native layout logic
+    const sources = this._normalizeSources?.() || [];
+    const preferredId = this._storedSourceId?.(sources) || this._activeSourceId || this._config?.active_source || sources[0]?.id;
+    const activeSource = sources.find(source => source.id === preferredId) || sources[0];
+    const entity = activeSource ? activeSource.entity : (this._config?.entity || '');
+
+    // 2. Automatic Timezone Hook
+    if (this._config?.use_local_timezone !== false && entity) {
       const entityState = this.hass.states[entity];
       if (entityState && entityState.attributes && entityState.attributes.time_zone) {
         try {
@@ -5046,27 +5039,31 @@ _tickClock() {
       }
     }
 
-    // 2. Apply Finer Tweaking / Manual Offset (in hours)
-    if (this._config.timezone_offset) {
+    // 3. Apply Finer Tweaking / Manual Offset (in hours)
+    if (this._config?.timezone_offset) {
       const offsetMs = parseFloat(this._config.timezone_offset) * 60 * 60 * 1000;
       now = new Date(now.getTime() + offsetMs);
     }
 
-    // Original card layout parsing & formatting
-    const use12h = !!this._config.time_format_12h;
-    const timeStr = now.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: use12h
-    });
+    // Native card formatting logic using our shifted 'now' object
+    const locMap = {'en': 'en-US', 'es': 'es-ES', 'de': 'de-DE'};
+    const loc = locMap[this._config?.language||'en'] || 'en-US';
+    const h = now.getHours();
+    const m = String(now.getMinutes()).padStart(2, '0');
+    return {
+      date: now.toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' }),
+      time: use24h ? `${String(h).padStart(2, '0')}:${m}` : `${h % 12 || 12}:${m} ${h < 12 ? 'AM' : 'PM'}`
+    };
+  }
 
-    const parts = timeStr.split(' ');
-    this.shadowRoot.querySelectorAll('.nwc-time').forEach(el => {
-      el.textContent = parts[0];
-    });
-    this.shadowRoot.querySelectorAll('.nwc-am-pm').forEach(el => {
-      el.textContent = use12h && parts[1] ? parts[1] : '';
-    });
+  _tickClock() {
+    const displayOptions = this._activeDisplayOptions();
+    if (!displayOptions.show_clock) return;
+    const el = this.shadowRoot?.getElementById('det-clock');
+    if (!el) return;
+    const { date, time } = this._clockParts(displayOptions.use_24h);
+    el.querySelector('.det-clock-date').textContent = date;
+    el.querySelector('.det-clock-time').textContent = time;
   }
 
   _initDetSplash(condition) {
