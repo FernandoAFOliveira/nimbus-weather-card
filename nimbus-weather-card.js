@@ -5019,35 +5019,59 @@ _clearDroplets() {
 
 _clockParts(use24h = this._config?.use_24h !== false) {
     let now = new Date();
+    let timeStringOverride = null;
 
-    // 1. Safely resolve the active weather entity
-    const sources = this._normalizeSources ? this._normalizeSources() : [];
-    const preferredId = (this._storedSourceId && sources.length) ? this._storedSourceId(sources) : null;
-    const activeSource = sources.find(source => source.id === (preferredId || this._activeSourceId || this._config?.active_source)) || sources[0];
-    const entity = activeSource ? activeSource.entity : (this._config?.entity || '');
-
-    // 2. Safe Automatic Timezone Hook (Guarded against missing hass or states)
-    if (this._config?.use_local_timezone !== false && entity && this.hass && this.hass.states) {
-      const entityState = this.hass.states[entity];
-      if (entityState && entityState.attributes && entityState.attributes.time_zone) {
-        try {
-          const localTimeString = now.toLocaleString("en-US", { timeZone: entityState.attributes.time_zone });
-          now = new Date(localTimeString);
-        } catch (e) {
-          console.warn("Nimbus Weather Card: Invalid timezone encountered:", entityState.attributes.time_zone);
+    // 1. Hook into your custom Worldclock Entity field if provided[cite: 3]
+    if (this._config?.local_time && this.hass && this.hass.states[this._config.local_time]) {
+      const timeEntityState = this.hass.states[this._config.local_time];
+      if (timeEntityState && timeEntityState.state) {
+        // The Worldclock integration outputs time state or timestamp
+        const parsedDate = new Date(timeEntityState.state);
+        if (!isNaN(parsedDate.getTime())) {
+          now = parsedDate;
+        } else {
+          // Fallback parsing if state is a pure string representation
+          timeStringOverride = timeEntityState.state;
         }
+      }
+    } else {
+      // 2. Fallback to Automatic Weather Timezone Hook if no Worldclock entity is selected[cite: 3]
+      const sources = this._normalizeSources ? this._normalizeSources() : [];
+      const preferredId = (this._storedSourceId && sources.length) ? this._storedSourceId(sources) : null;
+      const activeSource = sources.find(source => source.id === (preferredId || this._activeSourceId || this._config?.active_source)) || sources[0];
+      const entity = activeSource ? activeSource.entity : (this._config?.entity || '');
+
+      if (this._config?.use_local_timezone !== false && entity && this.hass && this.hass.states) {
+        const entityState = this.hass.states[entity];
+        if (entityState && entityState.attributes && entityState.attributes.time_zone) {
+          try {
+            const localTimeString = now.toLocaleString("en-US", { timeZone: entityState.attributes.time_zone });
+            now = new Date(localTimeString);
+          } catch (e) {
+            console.warn("Nimbus Weather Card: Invalid timezone encountered:", entityState.attributes.time_zone);
+          }
+        }
+      }
+
+      // 3. Apply Finer Tweaking / Manual Offset (in hours)[cite: 3]
+      if (this._config?.timezone_offset) {
+        const offsetMs = parseFloat(this._config.timezone_offset) * 60 * 60 * 1000;
+        now = new Date(now.getTime() + offsetMs);
       }
     }
 
-    // 3. Apply Finer Tweaking / Manual Offset (in hours)
-    if (this._config?.timezone_offset) {
-      const offsetMs = parseFloat(this._config.timezone_offset) * 60 * 60 * 1000;
-      now = new Date(now.getTime() + offsetMs);
-    }
-
-    // Native card formatting logic using our safely shifted 'now' object
+    // Native card formatting logic[cite: 3]
     const locMap = {'en': 'en-US', 'es': 'es-ES', 'de': 'de-DE'};
     const loc = locMap[this._config?.language||'en'] || 'en-US';
+    
+    // If the Worldclock entity returned a formatted string directly, parse it out safely[cite: 3]
+    if (timeStringOverride && timeStringOverride.includes(':')) {
+      return {
+        date: now.toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' }),
+        time: timeStringOverride
+      };
+    }
+
     const h = now.getHours();
     const m = String(now.getMinutes()).padStart(2, '0');
     return {
@@ -5066,7 +5090,7 @@ _clockParts(use24h = this._config?.use_24h !== false) {
     const dateEl = el.querySelector('.det-clock-date');
     const timeEl = el.querySelector('.det-clock-time');
     
-    // Safely update elements only if they are fully rendered in the DOM
+    // Safely update elements only if they are fully rendered in the DOM[cite: 2]
     if (dateEl) dateEl.textContent = date;
     if (timeEl) timeEl.textContent = time;
   }
@@ -5486,8 +5510,10 @@ class NimbusWeatherCardEditor extends HTMLElement {
       if (activeIndex >= 0) this._activeSourceEditorIndex = activeIndex;
     }
     this._config = {
-      use_local_timezone: true, // Default to true if not set
-      timezone_offset: 0,        // Default to 0 hours tweak
+      use_local_timezone: config.use_local_timezone !== false,
+      timezone_offset: parseFloat(config.timezone_offset) || 0,
+      local_time: config.local_time || '', // <-- Add this line right here
+      entity: config.entity,
       ...config,
       sources,
     };
@@ -5683,6 +5709,18 @@ class NimbusWeatherCardEditor extends HTMLElement {
           <select class="source-entity" data-idx="${i}">
             ${optionList(weatherEntities, source.entity, '— select entity —')}
           </select>
+        </div>
+        <div class="row source-row">
+          <div class="class=label">Local Time Entity (Worldclock)</div>
+          <ha-entity-picker
+            .label="${'Select Worldclock Sensor'}"
+            .hass="${this.hass}"
+            .value="${source.local_time || ''}"
+            .configValue="${'local_time'}"
+            .idx="${i}"
+            @value-changed="${this._valueChanged}"
+            allow-custom-entity
+          ></ha-entity-picker>
         </div>
         ${renderDisplayOverrides(source, i)}
         ${renderSupplementFields(source, i, 'Supplement Sensors', 'Optional values for details missing from this integration')}` : `
@@ -6217,12 +6255,14 @@ ${!sourceEditorEnabled ? `
       const showForecast = sr.getElementById('show_forecast')
         ? getChecked('show_forecast', true)
         : (this._config.show_forecast !== false);
+      const localTimeValue = getValue('local_time');
       const maxItemsValue = parseInt(getValue('max_items', this._config.max_items ?? 5), 10);
       // Start from existing config to preserve unknown fields like grid_options
       const cfg = {
         ...this._config,
         type: 'custom:nimbus-weather-card-time-zone',
         entity,
+        local_time: localTimeValue || this._config.local_time || '',
         forecast_type: getValue('forecast_type', this._config.forecast_type || 'daily'),
         max_items: Number.isFinite(maxItemsValue) ? maxItemsValue : (this._config.max_items || 5),
         language: this.shadowRoot.getElementById('language')?.value || 'en',
