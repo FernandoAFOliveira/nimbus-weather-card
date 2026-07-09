@@ -1,10 +1,10 @@
-# 🌦️ Nimbus Weather Card Time Zone
+# 🌦️ Sirgon Globe
 
-![Nimbus Weather Card Time Zone](media/nimbus-weather-card-demo.gif)
+![Sirgon Globe](media/Sirgon-globe-demo.gif)
 
 A beautiful, Apple Weather‑inspired custom card for Home Assistant with multi-source weather tabs, smooth particle effects, dynamic backgrounds, and detailed moon phase support.
 
-🔗 **GitHub**: https://github.com/FernandoAFOliveira/nimbus-weather-card-time-zone 
+🔗 **GitHub**: https://github.com/FernandoAFOliveira/Sirgon-globe-time-zone 
 📦 **HACS**: Available in HACS
 
 ---
@@ -35,7 +35,7 @@ It tightens condition handling across weather integrations and local condition s
 
 ### 🔧 Condition rendering fixes
 
-- Weather states are now normalized before rendering, so common variants such as `Partly Cloudy`, `partly-cloudy`, `clear night`, `mist`, `haze`, `drizzle`, `heavy-rain`, `thunderstorm`, `snow`, `sleet`, and `wintry-mix` map to the intended Nimbus visuals.
+- Weather states are now normalized before rendering, so common variants such as `Partly Cloudy`, `partly-cloudy`, `clear night`, `mist`, `haze`, `drizzle`, `heavy-rain`, `thunderstorm`, `snow`, `sleet`, and `wintry-mix` map to the intended Sirgonvisuals.
 - `overcast` now uses the cloudy icon instead of falling back to the exceptional warning icon.
 - `overcast` and `exceptional` now have proper night background handling in both CSS and canvas rendering paths.
 - Moon visibility is reduced for heavy/uncertain conditions such as `overcast`, `exceptional`, and `lightning`, so the moon no longer appears too clear through dense cloud or warning states.
@@ -53,13 +53,13 @@ It tightens condition handling across weather integrations and local condition s
 
 ## 🆕 What's new in v2.4.0
 
-What started as another round of visual polish grew into a much deeper update. Nimbus can now handle multiple weather sources, keep local station data separate from forecast integrations, and render the sky with smoother transitions, improved moon phases, softer clouds, and richer atmospheric effects.
+What started as another round of visual polish grew into a much deeper update. Sirgoncan now handle multiple weather sources, keep local station data separate from forecast integrations, and render the sky with smoother transitions, improved moon phases, softer clouds, and richer atmospheric effects.
 
 The result is a more flexible card with better support for mixed weather sources and a more polished visual experience.
 
 ### 🌍 Multi-source weather
 
-Nimbus Weather Card Time Zone can now display multiple weather sources as tabs above the card. You can combine multiple weather integrations, multiple locations from supported integrations, a local weather station as its own source, and supplementary sensors for details missing from a forecast integration.
+Sirgon Globe can now display multiple weather sources as tabs above the card. You can combine multiple weather integrations, multiple locations from supported integrations, a local weather station as its own source, and supplementary sensors for details missing from a forecast integration.
 
 Each source can define its own name, weather entity, forecast type, display options, and optional sensors for humidity, wind, precipitation, pressure, UV index, feels-like temperature, and weather condition.
 
@@ -120,7 +120,7 @@ Sky gradients now transition with a slow 3-minute cross-fade instead of an abrup
 Clear nights in the Arctic latitude zone can show a soft aurora overlay with layered green, blue, and purple ribbons. Enabled via `latitude_zone: arctic` in your card config.
 
 ```yaml
-type: custom:nimbus-weather-card
+type: custom:Sirgon-globe
 entity: weather.home
 latitude_zone: arctic
 ```
@@ -152,7 +152,7 @@ On clear nights, a random star detaches and streaks diagonally across the sky ev
 ## 📋 Changelog
 
 ### v2.4.1
-- 🐛 **Condition normalization** — common condition sensor variants now map to the intended Nimbus weather states
+- 🐛 **Condition normalization** — common condition sensor variants now map to the intended Sirgonweather states
 - 🐛 **Overcast icon fallback** — `overcast` now uses the cloudy icon instead of the exceptional warning icon
 - 🐛 **Night background fixes** — `overcast` and `exceptional` no longer fall back to the bright default canvas background at night
 - 🌙 **Condition-aware moon opacity** — the moon is dimmer behind overcast, exceptional, and lightning conditions
@@ -233,15 +233,15 @@ On clear nights, a random star detaches and streaks diagonally across the sky ev
 
 ### Via HACS
 1. Open HACS → Frontend
-2. Search for **Nimbus Weather Card Time Zone**
+2. Search for **Sirgon Globe**
 3. Click **Download**
 4. Refresh your browser after installation
 
 ### Manual
-1. Download `nimbus-weather-card.js`
-2. Copy to `/config/www/nimbus-weather-card.js`
+1. Download `Sirgon-globe.js`
+2. Copy to `/config/www/Sirgon-globe.js`
 3. Add as a custom resource: `Settings → Dashboards → Resources → Add`
-   - URL: `/local/nimbus-weather-card.js`
+   - URL: `/local/Sirgon-globe.js`
    - Type: JavaScript module
 
 ---
@@ -249,7 +249,7 @@ On clear nights, a random star detaches and streaks diagonally across the sky ev
 ## ⚙️ Configuration
 
 ```yaml
-type: custom:nimbus-weather-card
+type: custom:Sirgon-globe
 entity: weather.forecast_home
 sun_entity: sun.sun          # optional but recommended
 moon_entity: sensor.moon     # optional, for moon phases
@@ -285,7 +285,7 @@ See existing translations in the source for the format.
 
 ## 🐛 Bugs & Feature Requests
 
-Open an issue on [GitHub](https://github.com/maxfok/nimbus-weather-card/issues) or comment on the [HA Community thread](https://community.home-assistant.io/t/nimbus-weather-card/997259).
+Open an issue on [GitHub](https://github.com/maxfok/Sirgon-globe/issues) or comment on the [HA Community thread](https://community.home-assistant.io/t/Sirgon-globe/997259).
 
 ---
 
