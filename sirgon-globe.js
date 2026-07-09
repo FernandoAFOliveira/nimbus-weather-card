@@ -5771,16 +5771,28 @@ class SirgonGlobeEditor extends HTMLElement {
     const sensorEntities = typeof this._sensorEntities === 'function' ? this._sensorEntities() : [];
     const sunEntities = typeof this._sunEntities === 'function' ? this._sunEntities() : [];
     
-    // 2. Globally compatible root-level time tracking array filter
+    // 2. Globally dynamic time tracking filter (clears clutter without hardcoding names)
     const hassObj = this.hass || this._hass;
     const timeEntities = (hassObj && hassObj.states)
       ? Object.keys(hassObj.states).filter(e => {
-          // Instantly keep official time platform entities
+          // 1. Instantly accept any native time platform entities
           if (e.startsWith('time.')) return true;
           
-          // Only keep sensors that are explicitly classified as timestamps by Home Assistant
           if (e.startsWith('sensor.')) {
-            return hassObj.states[e]?.attributes?.device_class === 'timestamp';
+            const lowerE = e.toLowerCase();
+            const stateObj = hassObj.states[e];
+            
+            // 2. Filter out chatty background system components
+            if (lowerE.includes('browser_mod') || lowerE.includes('backup') || lowerE.includes('battery')) return false;
+            
+            // 3. Match by explicit device classification or clock iconography
+            if (stateObj?.attributes?.device_class === 'timestamp' && !lowerE.includes('sun_next')) return true;
+            if (stateObj?.attributes?.icon === 'mdi:clock' || lowerE.includes('clock') || lowerE.includes('time_date')) return true;
+            
+            // 4. Fallback: Check if the current state value matches a digital time format (HH:MM)
+            const stateStr = String(stateObj?.state || '');
+            const timeRegex = /^\d{1,2}:\d{2}$/; // Matches formats like 00:13 or 1:45
+            if (timeRegex.test(stateStr)) return true;
           }
           return false;
         }).sort()
